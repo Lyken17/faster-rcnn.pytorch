@@ -2,25 +2,22 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-# from model.utils.config import cfg
-# from model.faster_rcnn.faster_rcnn import _fasterRCNN
-#
-# import torch
-# import torch.nn as nn
-# import torch.nn.functional as F
-# from torch.autograd import Variable
-# import math
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.autograd import Variable
+import math
 import torch.utils.model_zoo as model_zoo
-# import pdb
+import pdb
+
+from model.utils.config import cfg
+from model.faster_rcnn.faster_rcnn import _fasterRCNN
 
 model_urls = {'resnet18': 'https://s3.amazonaws.com/pytorch/models/resnet18-5c106cde.pth',
               'resnet34': 'https://s3.amazonaws.com/pytorch/models/resnet34-333f7ec4.pth',
               'resnet50': 'https://s3.amazonaws.com/pytorch/models/resnet50-19c8e357.pth',
               'resnet101': 'https://s3.amazonaws.com/pytorch/models/resnet101-5d3b4d8f.pth',
               'resnet152': 'https://s3.amazonaws.com/pytorch/models/resnet152-b121ed2d.pth', }
-
-import torch.nn as nn
-import math
 
 
 def conv_bn(inp, oup, stride):
@@ -95,6 +92,7 @@ class MobileNetV2(nn.Module):
 
 	def forward(self, x):
 		x = self.features(x)
+		print(x.size())
 		x = x.mean(3).mean(2)
 		x = self.classifier(x)
 		return x
@@ -118,83 +116,86 @@ class MobileNetV2(nn.Module):
 def mobilenetv2(pretrained=False):
 	model = MobileNetV2()
 	if pretrained:
-		url = "http://file.lzhu.me/pytorch-model-zoo/mobilenet_v2.pth.tar"
-		model.load_state_dict(model_zoo.load_url(url))
+		url = "http://file.lzhu.me/pytorch/models/mobilenet_v2-ecbe2b56.pth.tar"
+		fp = model_zoo.load_url(url, map_location="cpu")
+		model.load_state_dict(fp)
 	return model
 
 
 if __name__ == '__main__':
-	net = mobilenetv2()
-	# print(net)
+	net = mobilenetv2(pretrained=True)
+	print(net)
 	# print(net.features)
-	print(net.features[1])
+	# print(net.features[-1])
 
 
-# class mobilenet(_fasterRCNN):
-# 	def __init__(self, classes, num_layers=101, pretrained=False, class_agnostic=False):
-# 		self.model_path = 'data/pretrained_model/resnet101_caffe.pth'
-# 		self.dout_base_model = 1024
-# 		self.pretrained = pretrained
-# 		self.class_agnostic = class_agnostic
-#
-# 		_fasterRCNN.__init__(self, classes, class_agnostic)
-#
-# 	def _init_modules(self):
-# 		resnet = mobilenetv2(pretrained=self.pretrained)
-#
-# 		if self.pretrained == True:
-# 			print("Loading pretrained weights from %s" % (
-# 				self.model_path))  # state_dict = torch.load(self.model_path)  #  resnet.load_state_dict({k: v for k, v in state_dict.items() if k in resnet.state_dict()})
-#
-# 		# Build resnet.
-# 		self.RCNN_base = nn.Sequential(resnet.conv1, resnet.bn1, resnet.relu, resnet.maxpool, resnet.layer1,
-# 			resnet.layer2, resnet.layer3)
-#
-# 		self.RCNN_top = nn.Sequential(resnet.layer4)
-#
-# 		self.RCNN_cls_score = nn.Linear(2048, self.n_classes)
-# 		if self.class_agnostic:
-# 			self.RCNN_bbox_pred = nn.Linear(2048, 4)
-# 		else:
-# 			self.RCNN_bbox_pred = nn.Linear(2048, 4 * self.n_classes)
-#
-# 		# Fix blocks
-# 		for p in self.RCNN_base[0].parameters(): p.requires_grad = False
-# 		for p in self.RCNN_base[1].parameters(): p.requires_grad = False
-#
-# 		assert (0 <= cfg.RESNET.FIXED_BLOCKS < 4)
-# 		if cfg.RESNET.FIXED_BLOCKS >= 3:
-# 			for p in self.RCNN_base[6].parameters(): p.requires_grad = False
-# 		if cfg.RESNET.FIXED_BLOCKS >= 2:
-# 			for p in self.RCNN_base[5].parameters(): p.requires_grad = False
-# 		if cfg.RESNET.FIXED_BLOCKS >= 1:
-# 			for p in self.RCNN_base[4].parameters(): p.requires_grad = False
-#
-# 		def set_bn_fix(m):
-# 			classname = m.__class__.__name__
-# 			if classname.find('BatchNorm') != -1:
-# 				for p in m.parameters(): p.requires_grad = False
-#
-# 		self.RCNN_base.apply(set_bn_fix)
-# 		self.RCNN_top.apply(set_bn_fix)
-#
-# 	def train(self, mode=True):
-# 		# Override train so that the training mode is set as we want
-# 		nn.Module.train(self, mode)
-# 		if mode:
-# 			# Set fixed blocks to be in eval mode
-# 			self.RCNN_base.eval()
-# 			self.RCNN_base[5].train()
-# 			self.RCNN_base[6].train()
-#
-# 			def set_bn_eval(m):
-# 				classname = m.__class__.__name__
-# 				if classname.find('BatchNorm') != -1:
-# 					m.eval()
-#
-# 			self.RCNN_base.apply(set_bn_eval)
-# 			self.RCNN_top.apply(set_bn_eval)
-#
-# 	def _head_to_tail(self, pool5):
-# 		fc7 = self.RCNN_top(pool5).mean(3).mean(2)
-# 		return fc7
+class mobilenet(_fasterRCNN):
+	def __init__(self, classes, pretrained=False, class_agnostic=False):
+		# self.model_path = 'data/pretrained_model/resnet101_caffe.pth'
+		self.dout_base_model = 320
+		self.pretrained = pretrained
+		self.class_agnostic = class_agnostic
+
+		_fasterRCNN.__init__(self, classes, class_agnostic)
+
+	def _init_modules(self):
+		self.mobilenet = mobilenetv2(pretrained=self.pretrained)
+
+		if self.pretrained == True:
+			print("Loading pretrained weights from PyTorch")
+
+		# Build resnet.
+		# self.RCNN_base = nn.Sequential(*list(self.mobilenet.children())[:12])
+		# self.RCNN_top  = nn.Sequential(*list(self.mobilenet.children())[12:])
+
+		# self.RCNN_base = nn.Sequential(*list(self.mobilenet.features._modules.values()))
+		# self.RCNN_top  = self.mobilenet.classifier
+
+		self.RCNN_base = nn.Sequential(*list(self.mobilenet.features.children())[:-1])
+		self.RCNN_top = nn.Sequential(*list(self.mobilenet.features.children())[-1:])
+
+		self.RCNN_cls_score = nn.Linear(1280, self.n_classes)
+		if self.class_agnostic:
+			self.RCNN_bbox_pred = nn.Linear(1280, 4)
+		else:
+			self.RCNN_bbox_pred = nn.Linear(1280, 4 * self.n_classes)
+
+		# Fix blocks
+		assert (0 <= cfg.MOBILENET.FIXED_LAYERS <= 12)
+		for m in list(self.RCNN_base.children())[:cfg.MOBILENET.FIXED_LAYERS]:
+			for p in m.parameters():
+				p.requires_grad = False
+
+		def set_bn_fix(m):
+			classname = m.__class__.__name__
+			if classname.find('BatchNorm') != -1:
+				for p in m.parameters(): p.requires_grad = False
+
+		self.RCNN_base.apply(set_bn_fix)
+		self.RCNN_top.apply(set_bn_fix)
+
+	def train(self, mode=True):
+		# Override train so that the training mode is set as we want
+		nn.Module.train(self, mode)
+		if mode:
+			# Set fixed blocks to be in eval mode
+			self.RCNN_base.eval()
+			# self.RCNN_base[5].train()
+			# self.RCNN_base[6].train()
+			for m in list(self.RCNN_base.children())[cfg.MOBILENET.FIXED_LAYERS:]:
+				for p in m.parameters():
+					p.requires_grad = False
+
+			def set_bn_eval(m):
+				classname = m.__class__.__name__
+				if classname.find('BatchNorm') != -1:
+					m.eval()
+
+			self.RCNN_base.apply(set_bn_eval)
+			self.RCNN_top.apply(set_bn_eval)
+
+	def _head_to_tail(self, pool5):
+		fc7 = self.RCNN_top(pool5).mean(3).mean(2)
+		# print("pool:\t", pool5.size())
+		# print("fc7:\t", fc7.size())
+		return fc7
