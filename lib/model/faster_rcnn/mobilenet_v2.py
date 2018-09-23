@@ -173,10 +173,12 @@ class mobilenet(_fasterRCNN):
 		nn.Module.train(self, mode)
 		if mode:
 			# Set fixed blocks to be in eval mode
-			self.RCNN_base.eval()
-			for m in list(self.RCNN_base.children())[cfg.MOBILENET.FIXED_LAYERS:]:
+			# self.RCNN_base.eval()
+			# self.RCNN_base[5].train()
+			# self.RCNN_base[6].train()
+			for m in list(self.RCNN_base.children())[: cfg.MOBILENET.FIXED_LAYERS]:
 				for p in m.parameters():
-					p.requires_grad = True
+					p.requires_grad = False
 
 			def set_bn_eval(m):
 				classname = m.__class__.__name__
@@ -185,7 +187,6 @@ class mobilenet(_fasterRCNN):
 
 			self.RCNN_base.apply(set_bn_eval)
 			self.RCNN_top.apply(set_bn_eval)
-			self.mobilenet.apply(set_bn_eval)
 
 	def _head_to_tail(self, pool5):
 		fc7 = self.RCNN_top(pool5).mean(3).mean(2)

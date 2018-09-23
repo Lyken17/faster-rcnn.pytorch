@@ -330,14 +330,13 @@ class nasnet(_fasterRCNN):
 		# self.model_path = 'data/pretrained_model/resnet101_caffe.pth'
 		self.pretrained = pretrained
 		self.class_agnostic = class_agnostic
-
-		self.mobilenet = mobilenet_v2(pretrained=self.pretrained)
-		# self.dout_base_model = 432
-
-		self.dout_base_model = self.mobilenet.feature_mix_layer.out_channels
-		self.dout_top_model = self.mobilenet.feature_mix_layer.out_channels * 4
+		self.dout_base_model = 432 # may change under different settings
 
 		_fasterRCNN.__init__(self, classes, class_agnostic)
+
+		self.mobilenet = mobilenet_v2(pretrained=self.pretrained)
+		self.dout_base_model = self.mobilenet.feature_mix_layer.out_channels
+		self.dout_top_model = self.mobilenet.feature_mix_layer.out_channels * 4
 
 	def _init_modules(self):
 
