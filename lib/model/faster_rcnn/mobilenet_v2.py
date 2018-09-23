@@ -145,12 +145,6 @@ class mobilenet(_fasterRCNN):
 			print("Loading pretrained weights from PyTorch")
 
 		# Build resnet.
-		# self.RCNN_base = nn.Sequential(*list(self.mobilenet.children())[:12])
-		# self.RCNN_top  = nn.Sequential(*list(self.mobilenet.children())[12:])
-
-		# self.RCNN_base = nn.Sequential(*list(self.mobilenet.features._modules.values()))
-		# self.RCNN_top  = self.mobilenet.classifier
-
 		self.RCNN_base = nn.Sequential(*list(self.mobilenet.features.children())[:-1])
 		self.RCNN_top = nn.Sequential(*list(self.mobilenet.features.children())[-1:])
 

@@ -28,9 +28,10 @@ from model.rpn.bbox_transform import clip_boxes
 from model.nms.nms_wrapper import nms
 from model.rpn.bbox_transform import bbox_transform_inv
 from model.utils.net_utils import save_net, load_net, vis_detections
+
 from model.faster_rcnn.vgg16 import vgg16
 from model.faster_rcnn.resnet import resnet
-
+from model.faster_rcnn.mobilenet_v2 import mobilenet
 import pdb
 
 try:
@@ -156,9 +157,11 @@ if __name__ == '__main__':
     fasterRCNN = resnet(imdb.classes, 50, pretrained=False, class_agnostic=args.class_agnostic)
   elif args.net == 'res152':
     fasterRCNN = resnet(imdb.classes, 152, pretrained=False, class_agnostic=args.class_agnostic)
+  elif args.net == "mnet":
+      fasterRCNN = mobilenet(imdb.classes, pretrained=True, class_agnostic=args.class_agnostic)
   else:
-    print("network is not defined")
-    pdb.set_trace()
+      raise NotImplementedError("network is not defined")
+      pdb.set_trace()
 
   fasterRCNN.create_architecture()
 
