@@ -33,6 +33,7 @@ from model.utils.net_utils import weights_normal_init, save_net, load_net, adjus
 from model.faster_rcnn.vgg16 import vgg16
 from model.faster_rcnn.resnet import resnet
 from model.faster_rcnn.mobilenet_v2 import mobilenet
+from model.faster_rcnn.nasnet import nasnet
 
 def parse_args():
 	"""
@@ -204,6 +205,8 @@ if __name__ == '__main__':
 		fasterRCNN = resnet(imdb.classes, 152, pretrained=True, class_agnostic=args.class_agnostic)
 	elif args.net == "mnet":
 		fasterRCNN = mobilenet(imdb.classes, pretrained=True, class_agnostic=args.class_agnostic)
+	elif args.net == "nas":
+		fasterRCNN = nasnet(imdb.classes, pretrained=True, class_agnostic=args.class_agnostic)
 	else:
 		raise NotImplementedError("network is not defined")
 		pdb.set_trace()

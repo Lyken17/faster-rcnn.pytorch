@@ -386,7 +386,7 @@ class nasnet(_fasterRCNN):
 			# self.RCNN_base[6].train()
 			for m in list(self.RCNN_base.children())[cfg.MOBILENET.FIXED_LAYERS:]:
 				for p in m.parameters():
-					p.requires_grad = False
+					p.requires_grad = True
 
 			def set_bn_eval(m):
 				classname = m.__class__.__name__
