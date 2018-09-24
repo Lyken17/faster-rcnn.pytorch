@@ -44,7 +44,7 @@ def parse_args():
 	parser.add_argument('--net', dest='net', help='vgg16, res101', default='vgg16', type=str)
 	parser.add_argument('--start_epoch', dest='start_epoch', help='starting epoch', default=1, type=int)
 	parser.add_argument('--epochs', dest='max_epochs', help='number of epochs to train', default=20, type=int)
-	parser.add_argument('--disp_interval', dest='disp_interval', help='number of iterations to display', default=100,
+	parser.add_argument('--disp_interval', dest='disp_interval', help='number of iterations to display', default=20,
 	                    type=int)
 	parser.add_argument('--checkpoint_interval', dest='checkpoint_interval', help='number of iterations to display',
 	                    default=10000, type=int)
@@ -274,7 +274,7 @@ if __name__ == '__main__':
 		data_iter = iter(dataloader)
 		for step in range(iters_per_epoch):
 			data = next(data_iter)
-			print(data)
+			# print([_.size() for _ in data])
 			im_data.data.resize_(data[0].size()).copy_(data[0])
 			im_info.data.resize_(data[1].size()).copy_(data[1])
 			gt_boxes.data.resize_(data[2].size()).copy_(data[2])

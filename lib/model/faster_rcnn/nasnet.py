@@ -331,12 +331,13 @@ class nasnet(_fasterRCNN):
 		self.pretrained = pretrained
 		self.class_agnostic = class_agnostic
 		self.dout_base_model = 432 # may change under different settings
+		self.dout_top_model = 432 * 4
 
 		_fasterRCNN.__init__(self, classes, class_agnostic)
 
 		self.mobilenet = mobilenet_v2(pretrained=self.pretrained)
-		self.dout_base_model = self.mobilenet.feature_mix_layer.out_channels
-		self.dout_top_model = self.mobilenet.feature_mix_layer.out_channels * 4
+		# self.dout_base_model = self.mobilenet.feature_mix_layer.in_channels
+		# self.dout_top_model = self.mobilenet.feature_mix_layer.in_channels * 4
 
 	def _init_modules(self):
 
@@ -356,12 +357,17 @@ class nasnet(_fasterRCNN):
 		# self.RCNN_top = nn.Sequential(*list(self.mobilenet.feature_mix_layer.children()))
 		self.RCNN_top = self.mobilenet.feature_mix_layer
 
-		self.RCNN_cls_score = nn.Linear(self.dout_top_model, self.n_classes)
+		# self.RCNN_cls_score = nn.Linear(self.dout_top_model, self.n_classes)
+		# if self.class_agnostic:
+		# 	self.RCNN_bbox_pred = nn.Linear(self.dout_top_model, 4)
+		# else:
+		# 	self.RCNN_bbox_pred = nn.Linear(self.dout_top_model, 4 * self.n_classes)
+		n = self.dout_top_model
+		self.RCNN_cls_score = nn.Linear(n, self.n_classes)
 		if self.class_agnostic:
-			self.RCNN_bbox_pred = nn.Linear(self.dout_top_model, 4)
+			self.RCNN_bbox_pred = nn.Linear(n, 4)
 		else:
-			self.RCNN_bbox_pred = nn.Linear(self.dout_top_model, 4 * self.n_classes)
-
+			self.RCNN_bbox_pred = nn.Linear(n, 4 * self.n_classes)
 		# Fix blocks
 		assert (0 <= cfg.MOBILENET.FIXED_LAYERS <= 12)
 		for m in list(self.RCNN_base.children())[:cfg.MOBILENET.FIXED_LAYERS]:
