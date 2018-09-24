@@ -341,7 +341,7 @@ class nasnet(_fasterRCNN):
 	def _init_modules(self):
 
 		if self.pretrained == True:
-			print("Loading pretrained weights from PyTorch")
+			print("Loading pretrained weights from file.lzhu.me")
 
 		# Build resnet.
 		# self.RCNN_base = nn.Sequential(*list(self.mobilenet.children())[:12])
@@ -351,9 +351,10 @@ class nasnet(_fasterRCNN):
 		# self.RCNN_top  = self.mobilenet.classifier
 
 		self.RCNN_base = nn.Sequential(
-			*(list(self.mobilenet.first_conv.children()) + list(self.mobilenet.blocks.children()))
+			*([self.mobilenet.first_conv, ] + list(self.mobilenet.blocks.children()))
 		)
-		self.RCNN_top = nn.Sequential(*list(self.mobilenet.feature_mix_layer.children()))
+		# self.RCNN_top = nn.Sequential(*list(self.mobilenet.feature_mix_layer.children()))
+		self.RCNN_top = self.mobilenet.feature_mix_layer
 
 		self.RCNN_cls_score = nn.Linear(self.dout_top_model, self.n_classes)
 		if self.class_agnostic:
@@ -380,12 +381,12 @@ class nasnet(_fasterRCNN):
 		nn.Module.train(self, mode)
 		if mode:
 			# Set fixed blocks to be in eval mode
-			self.RCNN_base.eval()
+			# self.RCNN_base.eval()
 			# self.RCNN_base[5].train()
 			# self.RCNN_base[6].train()
-			for m in list(self.RCNN_base.children())[cfg.MOBILENET.FIXED_LAYERS:]:
+			for m in list(self.RCNN_base.children())[:cfg.MOBILENET.FIXED_LAYERS]:
 				for p in m.parameters():
-					p.requires_grad = True
+					p.requires_grad = False
 
 			def set_bn_eval(m):
 				classname = m.__class__.__name__
@@ -400,3 +401,4 @@ class nasnet(_fasterRCNN):
 		# print("pool:\t", pool5.size())
 		# print("fc7:\t", fc7.size())
 		return fc7
+
