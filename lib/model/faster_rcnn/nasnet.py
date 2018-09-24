@@ -381,6 +381,7 @@ class nasnet(_fasterRCNN):
 
 		self.RCNN_base.apply(set_bn_fix)
 		self.RCNN_top.apply(set_bn_fix)
+		self.train()
 
 	def train(self, mode=True):
 		# Override train so that the training mode is set as we want
@@ -399,6 +400,7 @@ class nasnet(_fasterRCNN):
 				if classname.find('BatchNorm') != -1:
 					m.eval()
 
+			self.mobilenet.apply(set_bn_eval)
 			self.RCNN_base.apply(set_bn_eval)
 			self.RCNN_top.apply(set_bn_eval)
 

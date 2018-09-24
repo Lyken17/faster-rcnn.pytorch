@@ -166,6 +166,7 @@ class mobilenet(_fasterRCNN):
 
 		self.RCNN_base.apply(set_bn_fix)
 		self.RCNN_top.apply(set_bn_fix)
+		self.train()
 
 	def train(self, mode=True):
 		# Override train so that the training mode is set as we want
@@ -181,7 +182,8 @@ class mobilenet(_fasterRCNN):
 					m.eval()
 
 			self.mobilenet.apply(set_bn_eval)
-			# self.RCNN_top.apply(set_bn_eval)
+			self.RCNN_base.apply(set_bn_eval)
+			self.RCNN_top.apply(set_bn_eval)
 
 	def _head_to_tail(self, pool5):
 		fc7 = self.RCNN_top(pool5).mean(3).mean(2)
