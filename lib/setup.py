@@ -15,13 +15,13 @@ from Cython.Distutils import build_ext
 
 
 def find_in_path(name, path):
-    "Find a file in a search path"
-    # adapted fom http://code.activestate.com/recipes/52224-find-a-file-given-a-search-path/
-    for dir in path.split(os.pathsep):
-        binpath = pjoin(dir, name)
-        if os.path.exists(binpath):
-            return os.path.abspath(binpath)
-    return None
+	"Find a file in a search path"
+	# adapted fom http://code.activestate.com/recipes/52224-find-a-file-given-a-search-path/
+	for dir in path.split(os.pathsep):
+		binpath = pjoin(dir, name)
+		if os.path.exists(binpath):
+			return os.path.abspath(binpath)
+	return None
 
 
 # def locate_cuda():
@@ -61,76 +61,95 @@ def find_in_path(name, path):
 
 # Obtain the numpy include directory.  This logic works across numpy versions.
 try:
-    numpy_include = np.get_include()
+	numpy_include = np.get_include()
 except AttributeError:
-    numpy_include = np.get_numpy_include()
+	numpy_include = np.get_numpy_include()
 
 
 def customize_compiler_for_nvcc(self):
-    """inject deep into distutils to customize how the dispatch
-    to gcc/nvcc works.
+	"""inject deep into distutils to customize how the dispatch
+	to gcc/nvcc works.
 
-    If you subclass UnixCCompiler, it's not trivial to get your subclass
-    injected in, and still have the right customizations (i.e.
-    distutils.sysconfig.customize_compiler) run on it. So instead of going
-    the OO route, I have this. Note, it's kindof like a wierd functional
-    subclassing going on."""
+	If you subclass UnixCCompiler, it's not trivial to get your subclass
+	injected in, and still have the right customizations (i.e.
+	distutils.sysconfig.customize_compiler) run on it. So instead of going
+	the OO route, I have this. Note, it's kindof like a wierd functional
+	subclassing going on."""
 
-    # tell the compiler it can processes .cu
-    self.src_extensions.append('.cu')
+	# tell the compiler it can processes .cu
+	self.src_extensions.append('.cu')
 
-    # save references to the default compiler_so and _comple methods
-    default_compiler_so = self.compiler_so
-    super = self._compile
+	# save references to the default compiler_so and _comple methods
+	default_compiler_so = self.compiler_so
+	super = self._compile
 
-    # now redefine the _compile method. This gets executed for each
-    # object but distutils doesn't have the ability to change compilers
-    # based on source extension: we add it.
-    def _compile(obj, src, ext, cc_args, extra_postargs, pp_opts):
-        print(extra_postargs)
-        if os.path.splitext(src)[1] == '.cu':
-            # use the cuda for .cu files
-            self.set_executable('compiler_so', CUDA['nvcc'])
-            # use only a subset of the extra_postargs, which are 1-1 translated
-            # from the extra_compile_args in the Extension class
-            postargs = extra_postargs['nvcc']
-        else:
-            postargs = extra_postargs['gcc']
+	# now redefine the _compile method. This gets executed for each
+	# object but distutils doesn't have the ability to change compilers
+	# based on source extension: we add it.
+	def _compile(obj, src, ext, cc_args, extra_postargs, pp_opts):
+		print(extra_postargs)
+		if os.path.splitext(src)[1] == '.cu':
+			# use the cuda for .cu files
+			self.set_executable('compiler_so', CUDA['nvcc'])
+			# use only a subset of the extra_postargs, which are 1-1 translated
+			# from the extra_compile_args in the Extension class
+			postargs = extra_postargs['nvcc']
+		else:
+			postargs = extra_postargs['gcc']
 
-        super(obj, src, ext, cc_args, postargs, pp_opts)
-        # reset the default compiler_so, which we might have changed for cuda
-        self.compiler_so = default_compiler_so
+		super(obj, src, ext, cc_args, postargs, pp_opts)
+		# reset the default compiler_so, which we might have changed for cuda
+		self.compiler_so = default_compiler_so
 
-    # inject our redefined _compile method into the class
-    self._compile = _compile
+	# inject our redefined _compile method into the class
+	self._compile = _compile
 
 
 # run the customize_compiler
 class custom_build_ext(build_ext):
-    def build_extensions(self):
-        customize_compiler_for_nvcc(self.compiler)
-        build_ext.build_extensions(self)
+	def build_extensions(self):
+		customize_compiler_for_nvcc(self.compiler)
+		build_ext.build_extensions(self)
 
 
-ext_modules = [
-    Extension(
-        "model.utils.cython_bbox",
-        ["model/utils/bbox.pyx"],
-        extra_compile_args={'gcc': ["-Wno-cpp", "-Wno-unused-function"]},
-        include_dirs=[numpy_include]
-    ),
-    # Extension(
-    #     'pycocotools._mask',
-    #     sources=['pycocotools/maskApi.c', 'pycocotools/_mask.pyx'],
-    #     include_dirs=[numpy_include, 'pycocotools'],
-    #     extra_compile_args={
-    #         'gcc': ['-Wno-cpp', '-Wno-unused-function', '-std=c99']},
-    # ),
+ext_modules = [Extension("model.utils.cython_bbox", ["model/utils/bbox.pyx"],
+	extra_compile_args={'gcc': ["-Wno-cpp", "-Wno-unused-function"]}, include_dirs=[numpy_include]), # Extension(
+	#     'pycocotools._mask',
+	#     sources=['pycocotools/maskApi.c', 'pycocotools/_mask.pyx'],
+	#     include_dirs=[numpy_include, 'pycocotools'],
+	#     extra_compile_args={
+	#         'gcc': ['-Wno-cpp', '-Wno-unused-function', '-std=c99']},
+	# ),
 ]
 
-setup(
-    name='faster_rcnn',
-    ext_modules=ext_modules,
-    # inject our custom trigger
-    cmdclass={'build_ext': custom_build_ext},
-)
+import distutils.command.clean
+import shutil
+
+
+class clean(distutils.command.clean.clean):
+	def run(self):
+		print("Clean all files that match gitignore")
+		import glob
+		import re
+		with open('.gitignore', 'r') as f:
+			ignores = f.read()
+			pat = re.compile(r'^#( BEGIN NOT-CLEAN-FILES )?')
+			for wildcard in filter(None, ignores.split('\n')):
+				match = pat.match(wildcard)
+				if match:
+					if match.group(1):
+						# Marker is found and stop reading .gitignore.
+						break  # Ignore lines which begin with '#'.
+				else:
+					for filename in glob.glob(wildcard):
+						try:
+							os.remove(filename)
+						except OSError:
+							shutil.rmtree(filename, ignore_errors=True)
+
+		# It's an old-style class in Python 2.7...
+		distutils.command.clean.clean.run(self)
+
+
+setup(name='faster_rcnn', ext_modules=ext_modules, # inject our custom trigger
+	cmdclass={'build_ext': custom_build_ext, 'clean': clean}, )
